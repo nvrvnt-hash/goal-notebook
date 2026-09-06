@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Goal Notebook">
+  <rect width="192" height="192" rx="44" fill="#2563eb"/>
+  <circle cx="96" cy="96" r="54" fill="#ffffff" opacity="0.96"/>
+  <circle cx="96" cy="96" r="31" fill="#dbeafe"/>
+  <circle cx="96" cy="96" r="11" fill="#2563eb"/>
+  <path d="M96 42v28M150 96h-28M96 150v-28M42 96h28" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
+</svg>
