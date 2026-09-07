@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BottomNavigation, { type Section } from './components/BottomNavigation';
 import GoalDetailsModal from './components/GoalDetailsModal';
 import GoalFormModal from './components/GoalFormModal';
@@ -8,18 +8,57 @@ import NotesScreen from './screens/NotesScreen';
 import SummaryScreen from './screens/SummaryScreen';
 import TodayScreen from './screens/TodayScreen';
 import { loadGoals, saveGoals } from './storage/goalsStorage';
-import { loadTasks, saveTasks } from './storage/tasksStorage';
+import { loadTasks, moveOverdueTasks, saveTasks } from './storage/tasksStorage';
 import type { CreateGoalInput, Goal, Task, TaskInput } from './types';
+import { getLocalDateKey } from './utils/date';
 
 function App() {
-  const [goals, setGoals] = useState<Goal[]>(() => loadGoals());
-  const [tasks, setTasks] = useState<Task[]>(() => loadTasks(loadGoals()));
+  const [initialData] = useState(() => {
+    const initialGoals = loadGoals();
+    return { goals: initialGoals, tasks: loadTasks(initialGoals) };
+  });
+  const [goals, setGoals] = useState<Goal[]>(initialData.goals);
+  const [tasks, setTasks] = useState<Task[]>(initialData.tasks);
+  const [currentDate, setCurrentDate] = useState(() => getLocalDateKey());
   const [activeSection, setActiveSection] = useState<Section>('goals');
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const refreshDateAndTasks = () => {
+      const nextDate = getLocalDateKey();
+      setCurrentDate(nextDate);
+      setTasks((currentTasks) => {
+        const updatedTasks = moveOverdueTasks(currentTasks, nextDate);
+        const changed = updatedTasks.some((task, index) => task.plannedDate !== currentTasks[index].plannedDate);
+        if (changed) saveTasks(updatedTasks);
+        return updatedTasks;
+      });
+    };
+
+    let timerId: number | undefined;
+    const scheduleNextMidnight = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now);
+      nextMidnight.setHours(24, 0, 0, 0);
+      timerId = window.setTimeout(() => {
+        refreshDateAndTasks();
+        scheduleNextMidnight();
+      }, Math.max(250, nextMidnight.getTime() - now.getTime() + 50));
+    };
+
+    scheduleNextMidnight();
+    window.addEventListener('focus', refreshDateAndTasks);
+    document.addEventListener('visibilitychange', refreshDateAndTasks);
+    return () => {
+      if (timerId !== undefined) window.clearTimeout(timerId);
+      window.removeEventListener('focus', refreshDateAndTasks);
+      document.removeEventListener('visibilitychange', refreshDateAndTasks);
+    };
+  }, []);
 
   const addProgress = (goalId: number, amount: number) => {
     setGoals((currentGoals) => {
@@ -77,50 +116,51 @@ function App() {
   };
 
   const createTask = (input: TaskInput) => {
-    const nextId = tasks.length === 0 ? 1 : Math.max(...tasks.map((task) => task.id)) + 1;
-    const newTask: Task = {
-      id: nextId,
-      title: input.title,
-      plannedDate: input.plannedDate,
-      completed: false,
-      createdAt: new Date().toISOString(),
-      ...(input.goalId === undefined ? {} : { goalId: input.goalId }),
-    };
-    const updatedTasks = [...tasks, newTask];
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    setTasks((currentTasks) => {
+      const nextId = currentTasks.length === 0 ? 1 : Math.max(...currentTasks.map((task) => task.id)) + 1;
+      const newTask: Task = { id: nextId, title: input.title, plannedDate: input.plannedDate, completed: false, createdAt: new Date().toISOString(), ...(input.goalId === undefined ? {} : { goalId: input.goalId }) };
+      const updatedTasks = [...currentTasks, newTask];
+      saveTasks(updatedTasks);
+      return updatedTasks;
+    });
     setIsTaskFormOpen(false);
     setEditingTaskId(null);
   };
 
   const updateTask = (input: TaskInput) => {
     if (editingTaskId === null) return;
-    const updatedTasks = tasks.map((task) => task.id === editingTaskId
-      ? { ...task, title: input.title, plannedDate: input.plannedDate, ...(input.goalId === undefined ? { goalId: undefined } : { goalId: input.goalId }) }
-      : task);
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    setTasks((currentTasks) => {
+      const updatedTasks = currentTasks.map((task) => task.id === editingTaskId
+        ? { ...task, title: input.title, plannedDate: input.plannedDate, ...(input.goalId === undefined ? { goalId: undefined } : { goalId: input.goalId }) }
+        : task);
+      saveTasks(updatedTasks);
+      return updatedTasks;
+    });
     setIsTaskFormOpen(false);
     setEditingTaskId(null);
   };
 
   const toggleTask = (taskId: number) => {
-    const updatedTasks = tasks.map((task) => {
-      if (task.id !== taskId) return task;
-      if (task.completed) {
-        const { completedAt: _completedAt, ...taskWithoutCompletionDate } = task;
-        return { ...taskWithoutCompletionDate, completed: false };
-      }
-      return { ...task, completed: true, completedAt: new Date().toISOString() };
+    setTasks((currentTasks) => {
+      const updatedTasks = currentTasks.map((task) => {
+        if (task.id !== taskId) return task;
+        if (task.completed) {
+          const { completedAt: _completedAt, ...taskWithoutCompletionDate } = task;
+          return { ...taskWithoutCompletionDate, completed: false };
+        }
+        return { ...task, completed: true, completedAt: new Date().toISOString() };
+      });
+      saveTasks(updatedTasks);
+      return updatedTasks;
     });
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
   };
 
   const deleteTask = (taskId: number) => {
-    const updatedTasks = tasks.filter((task) => task.id !== taskId);
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    setTasks((currentTasks) => {
+      const updatedTasks = currentTasks.filter((task) => task.id !== taskId);
+      saveTasks(updatedTasks);
+      return updatedTasks;
+    });
   };
 
   const deleteGoal = () => {
@@ -144,6 +184,7 @@ function App() {
           <TodayScreen
             goals={goals}
             tasks={tasks}
+            currentDate={currentDate}
             onAddTask={() => { setEditingTaskId(null); setIsTaskFormOpen(true); }}
             onEditTask={(taskId) => { setEditingTaskId(taskId); setIsTaskFormOpen(true); }}
             onToggleTask={toggleTask}
@@ -153,7 +194,7 @@ function App() {
       case 'notes':
         return <NotesScreen />;
       case 'summary':
-        return <SummaryScreen goals={goals} />;
+        return <SummaryScreen goals={goals} currentDate={currentDate} />;
       case 'goals':
       default:
         return (
@@ -163,6 +204,7 @@ function App() {
             onOpenSummary={() => setActiveSection('summary')}
             onOpenGoal={setSelectedGoalId}
             tasks={tasks}
+            currentDate={currentDate}
           />
         );
     }
@@ -200,6 +242,7 @@ function App() {
           }}
           onDelete={deleteGoal}
           tasks={tasks}
+          currentDate={currentDate}
         />
       )}
       {isTaskFormOpen && (editingTaskId === null || tasks.some((task) => task.id === editingTaskId)) && (

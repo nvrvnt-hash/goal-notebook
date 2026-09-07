@@ -380,6 +380,32 @@ h1 {
   background: #fff8f7;
 }
 
+.task-delete-backdrop {
+  align-items: center;
+  padding: 16px;
+}
+
+.task-delete-modal {
+  width: min(100%, 360px);
+  padding: 20px 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 20px 50px rgba(16, 24, 40, 0.2);
+}
+
+.task-delete-modal h2 {
+  font-size: 20px;
+}
+
+.task-delete-modal p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .task-delete-confirmation strong {
   color: var(--graphite);
   font-size: 15px;

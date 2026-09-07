@@ -24,6 +24,14 @@ function cloneTasks(tasks: Task[]): Task[] {
   return tasks.map((task) => ({ ...task }));
 }
 
+export function moveOverdueTasks(tasks: Task[], today = getLocalDateKey()): Task[] {
+  return tasks.map((task) =>
+    !task.completed && task.plannedDate < today
+      ? { ...task, plannedDate: today }
+      : { ...task },
+  );
+}
+
 function createMigratedTasks(goals: Goal[], today: string): Task[] {
   return goals
     .filter((goal) => typeof goal.todayTask === 'string' && goal.todayTask.trim())
@@ -54,14 +62,8 @@ export function loadTasks(goals: Goal[]): Task[] {
     }
 
     const tasks = parsedTasks.map((task) => ({ ...task }));
-    let hasChanges = false;
-    const updatedTasks = tasks.map((task) => {
-      if (!task.completed && task.plannedDate < today) {
-        hasChanges = true;
-        return { ...task, plannedDate: today };
-      }
-      return task;
-    });
+    const updatedTasks = moveOverdueTasks(tasks, today);
+    const hasChanges = updatedTasks.some((task, index) => task.plannedDate !== tasks[index].plannedDate);
 
     if (hasChanges) {
       saveTasks(updatedTasks);

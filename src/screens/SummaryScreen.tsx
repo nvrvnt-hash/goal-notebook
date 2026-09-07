@@ -1,9 +1,9 @@
 import { getGoalStatus } from './GoalsScreen';
 import type { Goal } from '../types';
 
-function SummaryScreen({ goals }: { goals: Goal[] }) {
-  const onTrackGoals = goals.filter((goal) => getGoalStatus(goal) === 'on-track').length;
-  const behindGoals = goals.filter((goal) => getGoalStatus(goal) === 'behind').length;
+function SummaryScreen({ goals, currentDate }: { goals: Goal[]; currentDate: string }) {
+  const onTrackGoals = goals.filter((goal) => getGoalStatus(goal, currentDate) === 'on-track').length;
+  const behindGoals = goals.filter((goal) => getGoalStatus(goal, currentDate) === 'behind').length;
   const averageProgress = goals.length ? Math.round(goals.reduce((total, goal) => total + goal.progress, 0) / goals.length) : 0;
   return (
     <section className="screen" aria-label="Итоги">

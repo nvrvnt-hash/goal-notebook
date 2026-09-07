@@ -13,22 +13,20 @@ const filters: Array<{ key: FilterKey; label: string }> = [
   { key: 'no-date', label: 'Без срока' },
 ];
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-
 type GoalsScreenProps = {
   goals: Goal[];
   onAddProgress: (goalId: number, amount: number) => void;
   onOpenSummary: () => void;
   onOpenGoal: (goalId: number) => void;
   tasks: Task[];
+  currentDate: string;
 };
 
-function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal, tasks }: GoalsScreenProps) {
+function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal, tasks, currentDate }: GoalsScreenProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const enrichedGoals = useMemo(
-    () => goals.map((goal) => ({ ...goal, status: getGoalStatus(goal), daysLeft: getDaysLeft(goal.deadline) })),
-    [goals],
+    () => goals.map((goal) => ({ ...goal, status: getGoalStatus(goal, currentDate), daysLeft: getDaysLeft(goal.deadline, currentDate) })),
+    [goals, currentDate],
   );
   const activeGoals = enrichedGoals.length;
   const attentionGoals = enrichedGoals.filter((goal) => goal.status === 'behind').length;
@@ -47,7 +45,7 @@ function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal, tasks }:
     <section className="screen" aria-label="Мои цели">
       <header className="screen-header">
         <div>
-          <p className="date-label">{formatLongDate(today)}</p>
+          <p className="date-label">{formatLongDate(parseDate(currentDate))}</p>
           <h1>Мои цели</h1>
         </div>
         <button className="icon-button" type="button" aria-label="Открыть итоги" onClick={onOpenSummary}>
@@ -73,7 +71,7 @@ function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal, tasks }:
       </nav>
       <section className="goal-list" aria-label="Активные цели">
         {visibleGoals.map((goal) => (
-          <GoalCard key={goal.id} goal={goal} tasks={tasks} onAddProgress={onAddProgress} onOpenGoal={onOpenGoal} />
+          <GoalCard key={goal.id} goal={goal} tasks={tasks} currentDate={currentDate} onAddProgress={onAddProgress} onOpenGoal={onOpenGoal} />
         ))}
       </section>
     </section>
@@ -89,14 +87,16 @@ function GoalCard({
   onAddProgress,
   onOpenGoal,
   tasks,
+  currentDate,
 }: {
   goal: Goal & { status: GoalStatus; daysLeft?: number };
   tasks: Task[];
+  currentDate: string;
   onAddProgress: (goalId: number, amount: number) => void;
   onOpenGoal: (goalId: number) => void;
 }) {
   const statusInfo = getStatusInfo(goal.status);
-  const todayTasks = tasks.filter((task) => task.goalId === goal.id && !task.completed && task.plannedDate === getLocalDateKey());
+  const todayTasks = tasks.filter((task) => task.goalId === goal.id && !task.completed && task.plannedDate === currentDate);
   const taskLabel = todayTasks.length === 0
     ? 'Задачи на сегодня не выбраны'
     : todayTasks.length === 1
@@ -118,7 +118,7 @@ function GoalCard({
       <div className="progress-head"><span>Прогресс</span><strong>{goal.progress}%</strong></div>
       <div className="progress-track" aria-hidden="true"><span style={{ width: `${goal.progress}%` }} /></div>
       <div className="goal-meta">
-        <span className="meta-item"><CalendarDays size={16} />{formatDeadline(goal.deadline)}</span>
+        <span className="meta-item"><CalendarDays size={16} />{formatDeadline(goal.deadline, currentDate)}</span>
         <span className={`status-pill ${statusInfo.className}`}>{statusInfo.label}</span>
       </div>
       <div className="task-link"><ListTodo size={17} /><span>{taskLabel}</span></div>
@@ -129,13 +129,13 @@ function GoalCard({
   );
 }
 
-export function getGoalStatus(goal: Goal): GoalStatus {
+export function getGoalStatus(goal: Goal, currentDate = getLocalDateKey()): GoalStatus {
   if (!goal.startDate || !goal.deadline) return 'no-date';
   const startDate = parseDate(goal.startDate);
   const deadlineDate = parseDate(goal.deadline);
   const totalTime = deadlineDate.getTime() - startDate.getTime();
   if (totalTime <= 0) return goal.progress >= 100 ? 'on-track' : 'behind';
-  const elapsedTime = Math.max(0, today.getTime() - startDate.getTime());
+  const elapsedTime = Math.max(0, parseDate(currentDate).getTime() - startDate.getTime());
   const expectedProgress = Math.min(100, Math.round((elapsedTime / totalTime) * 100));
   return goal.progress + 5 >= expectedProgress ? 'on-track' : 'behind';
 }
@@ -146,9 +146,9 @@ function getStatusInfo(status: GoalStatus) {
   return { label: 'По плану', className: 'on-track' };
 }
 
-function getDaysLeft(deadline?: string) {
+function getDaysLeft(deadline?: string, currentDate = getLocalDateKey()) {
   if (!deadline) return undefined;
-  return Math.ceil((parseDate(deadline).getTime() - today.getTime()) / 86_400_000);
+  return Math.ceil((parseDate(deadline).getTime() - parseDate(currentDate).getTime()) / 86_400_000);
 }
 
 function parseDate(value: string) {
@@ -157,8 +157,8 @@ function parseDate(value: string) {
   return date;
 }
 
-function formatDeadline(deadline?: string) {
-  const daysLeft = getDaysLeft(deadline);
+function formatDeadline(deadline?: string, currentDate = getLocalDateKey()) {
+  const daysLeft = getDaysLeft(deadline, currentDate);
   if (!deadline || typeof daysLeft !== 'number') return 'Без дедлайна';
   if (daysLeft < 0) return `Просрочено на ${Math.abs(daysLeft)} дн.`;
   if (daysLeft === 0) return 'Дедлайн сегодня';

@@ -3,7 +3,6 @@ import { CalendarDays, ListTodo } from 'lucide-react';
 import { getGoalStatus, type GoalStatus } from '../screens/GoalsScreen';
 import type { Goal } from '../types';
 import type { Task } from '../types';
-import { getLocalDateKey } from '../utils/date';
 
 type GoalDetailsModalProps = {
   goal: Goal;
@@ -11,13 +10,14 @@ type GoalDetailsModalProps = {
   onEdit: () => void;
   onDelete: () => void;
   tasks: Task[];
+  currentDate: string;
 };
 
-function GoalDetailsModal({ goal, onClose, onEdit, onDelete, tasks }: GoalDetailsModalProps) {
+function GoalDetailsModal({ goal, onClose, onEdit, onDelete, tasks, currentDate }: GoalDetailsModalProps) {
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
-  const status = getGoalStatus(goal);
+  const status = getGoalStatus(goal, currentDate);
   const statusInfo = getStatusInfo(status);
-  const relatedTasks = tasks.filter((task) => task.goalId === goal.id && task.plannedDate === getLocalDateKey());
+  const relatedTasks = tasks.filter((task) => task.goalId === goal.id && task.plannedDate === currentDate);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
