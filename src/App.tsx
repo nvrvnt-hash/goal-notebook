@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { loadGoals, saveGoals } from './storage/goalsStorage';
+import type { Goal } from './types';
 import {
   BarChart3,
   CalendarDays,
@@ -14,53 +16,6 @@ import {
 type GoalStatus = 'on-track' | 'behind' | 'no-date';
 type FilterKey = 'all' | 'behind' | 'soon' | 'no-date';
 
-type Goal = {
-  id: number;
-  title: string;
-  stage: string;
-  progress: number;
-  startDate?: string;
-  deadline?: string;
-  todayTask?: string;
-};
-
-const initialGoals: Goal[] = [
-  {
-    id: 1,
-    title: 'Запустить персональное PWA',
-    stage: 'Проектирование первого экрана',
-    progress: 42,
-    startDate: '2026-09-01',
-    deadline: '2026-09-24',
-    todayTask: 'Проверить главный экран на Android',
-  },
-  {
-    id: 2,
-    title: 'Собрать привычку вечернего обзора',
-    stage: 'Неделя 1: короткий отчёт',
-    progress: 18,
-    startDate: '2026-09-02',
-    deadline: '2026-09-12',
-    todayTask: 'Записать выполненные задачи дня',
-  },
-  {
-    id: 3,
-    title: 'Подготовить план обучения',
-    stage: 'Список тем и практики',
-    progress: 65,
-    startDate: '2026-08-26',
-    deadline: '2026-09-09',
-    todayTask: 'Выбрать одну тему для завтра',
-  },
-  {
-    id: 4,
-    title: 'Разобрать личные заметки',
-    stage: 'Сортировка идей',
-    progress: 25,
-    todayTask: 'Отметить три важные записи',
-  },
-];
-
 const filters: Array<{ key: FilterKey; label: string }> = [
   { key: 'all', label: 'Все' },
   { key: 'behind', label: 'Отстают' },
@@ -72,7 +27,7 @@ const today = new Date();
 today.setHours(0, 0, 0, 0);
 
 function App() {
-  const [goals, setGoals] = useState(initialGoals);
+  const [goals, setGoals] = useState<Goal[]>(() => loadGoals());
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
 
   const enrichedGoals = useMemo(
@@ -109,11 +64,13 @@ function App() {
   });
 
   const addProgress = (goalId: number, amount: number) => {
-    setGoals((currentGoals) =>
-      currentGoals.map((goal) =>
+    setGoals((currentGoals) => {
+      const updatedGoals = currentGoals.map((goal) =>
         goal.id === goalId ? { ...goal, progress: Math.min(goal.progress + amount, 100) } : goal,
-      ),
-    );
+      );
+      saveGoals(updatedGoals);
+      return updatedGoals;
+    });
   };
 
   return (
