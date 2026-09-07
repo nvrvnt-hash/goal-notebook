@@ -74,13 +74,13 @@ function NoteFormModal({ note, goals, onClose, onSubmit }: NoteFormModalProps) {
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-field">
             <label htmlFor="note-title">Название заметки</label>
-            <input id="note-title" type="text" value={values.title} onChange={(event) => updateValue('title', event.target.value)} aria-invalid={Boolean(errors.title)} autoFocus />
-            {errors.title && <span className="field-error">{errors.title}</span>}
+            <input id="note-title" type="text" value={values.title} onChange={(event) => updateValue('title', event.target.value)} aria-required="true" aria-invalid={Boolean(errors.title)} aria-describedby={errors.title ? 'note-title-error' : undefined} autoFocus />
+            {errors.title && <span className="field-error" id="note-title-error">{errors.title}</span>}
           </div>
           <div className="form-field">
             <label htmlFor="note-content">Текст заметки</label>
-            <textarea id="note-content" value={values.content} onChange={(event) => updateValue('content', event.target.value)} aria-invalid={Boolean(errors.content)} rows={6} />
-            {errors.content && <span className="field-error">{errors.content}</span>}
+            <textarea id="note-content" value={values.content} onChange={(event) => updateValue('content', event.target.value)} aria-required="true" aria-invalid={Boolean(errors.content)} aria-describedby={errors.content ? 'note-content-error' : undefined} rows={6} />
+            {errors.content && <span className="field-error" id="note-content-error">{errors.content}</span>}
           </div>
           <div className="form-field">
             <label htmlFor="note-goal">Связанная цель</label>

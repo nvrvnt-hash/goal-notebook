@@ -11,7 +11,7 @@ type NotesScreenProps = {
 };
 
 function NotesScreen({ goals, notes, onAddNote, onOpenNote, onEditNote, onDeleteNote }: NotesScreenProps) {
-  const sortedNotes = [...notes].sort((first, second) => second.updatedAt.localeCompare(first.updatedAt));
+  const sortedNotes = [...notes].sort((first, second) => safeTimestamp(second.updatedAt) - safeTimestamp(first.updatedAt));
   const getGoalTitle = (goalId?: number) => goals.find((goal) => goal.id === goalId)?.title;
 
   return (
@@ -29,13 +29,15 @@ function NotesScreen({ goals, notes, onAddNote, onOpenNote, onEditNote, onDelete
           {sortedNotes.map((note) => {
             const goalTitle = getGoalTitle(note.goalId);
             return (
-              <article className="note-card" key={note.id} onClick={() => onOpenNote(note.id)}>
+              <article className="note-card" key={note.id}>
                 <div className="note-card-main">
-                  <h2>{note.title}</h2>
-                  <p>{note.content}</p>
-                  <div className="note-card-meta"><span>{formatDate(note.updatedAt)}</span>{goalTitle && <span>{goalTitle}</span>}</div>
+                  <button className="note-card-open" type="button" aria-label={`Открыть заметку: ${note.title}`} onClick={() => onOpenNote(note.id)}>
+                    <h2>{note.title}</h2>
+                    <p>{note.content}</p>
+                    <div className="note-card-meta"><span>{formatDate(note.updatedAt)}</span>{goalTitle && <span>{goalTitle}</span>}</div>
+                  </button>
                 </div>
-                <div className="note-card-actions" onClick={(event) => event.stopPropagation()}>
+                <div className="note-card-actions">
                   <button className="task-icon-button" type="button" aria-label={`Редактировать заметку: ${note.title}`} onClick={() => onEditNote(note.id)}><Pencil size={17} /></button>
                   <button className="task-icon-button danger-icon" type="button" aria-label={`Удалить заметку: ${note.title}`} onClick={() => onDeleteNote(note.id)}><Trash2 size={17} /></button>
                 </div>
@@ -49,7 +51,14 @@ function NotesScreen({ goals, notes, onAddNote, onOpenNote, onEditNote, onDelete
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value));
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return 'Дата не указана';
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(timestamp));
+}
+
+function safeTimestamp(value: string) {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 export default NotesScreen;

@@ -7,10 +7,11 @@ type NoteDetailsModalProps = {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  initialDeleteConfirmation?: boolean;
 };
 
-function NoteDetailsModal({ note, goals, onClose, onEdit, onDelete }: NoteDetailsModalProps) {
-  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+function NoteDetailsModal({ note, goals, onClose, onEdit, onDelete, initialDeleteConfirmation = false }: NoteDetailsModalProps) {
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(initialDeleteConfirmation);
   const goalTitle = goals.find((goal) => goal.id === note.goalId)?.title;
 
   useEffect(() => {
@@ -56,7 +57,9 @@ function NoteDetailsModal({ note, goals, onClose, onEdit, onDelete }: NoteDetail
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(value));
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return 'Дата не указана';
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(timestamp));
 }
 
 export default NoteDetailsModal;

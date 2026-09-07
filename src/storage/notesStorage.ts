@@ -9,13 +9,23 @@ function isNote(value: unknown): value is Note {
 
   const note = value as Record<string, unknown>;
   return (
-    typeof note.id === 'number' &&
+    isPositiveSafeInteger(note.id) &&
     typeof note.title === 'string' &&
+    note.title.trim().length > 0 &&
     typeof note.content === 'string' &&
-    (note.goalId === undefined || typeof note.goalId === 'number') &&
-    typeof note.createdAt === 'string' &&
-    typeof note.updatedAt === 'string'
+    note.content.trim().length > 0 &&
+    (note.goalId === undefined || isPositiveSafeInteger(note.goalId)) &&
+    isValidDateString(note.createdAt) &&
+    isValidDateString(note.updatedAt)
   );
+}
+
+function isPositiveSafeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+}
+
+function isValidDateString(value: unknown): value is string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
 }
 
 function cloneNotes(notes: Note[]): Note[] {

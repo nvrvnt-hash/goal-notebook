@@ -32,6 +32,7 @@ function App() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
+  const [isNoteDeleteConfirmationOpen, setIsNoteDeleteConfirmationOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -204,6 +205,7 @@ function App() {
       return updatedNotes;
     });
     setSelectedNoteId(null);
+    setIsNoteDeleteConfirmationOpen(false);
   };
 
   const deleteGoal = () => {
@@ -235,7 +237,7 @@ function App() {
           />
         );
       case 'notes':
-        return <NotesScreen goals={goals} notes={notes} onAddNote={() => { setEditingNoteId(null); setIsNoteFormOpen(true); }} onOpenNote={setSelectedNoteId} onEditNote={(noteId) => { setEditingNoteId(noteId); setIsNoteFormOpen(true); }} onDeleteNote={setSelectedNoteId} />;
+        return <NotesScreen goals={goals} notes={notes} onAddNote={() => { setEditingNoteId(null); setIsNoteFormOpen(true); }} onOpenNote={(noteId) => { setSelectedNoteId(noteId); setIsNoteDeleteConfirmationOpen(false); }} onEditNote={(noteId) => { setEditingNoteId(noteId); setIsNoteFormOpen(true); }} onDeleteNote={(noteId) => { setSelectedNoteId(noteId); setIsNoteDeleteConfirmationOpen(true); }} />;
       case 'summary':
         return <SummaryScreen goals={goals} currentDate={currentDate} />;
       case 'goals':
@@ -314,7 +316,7 @@ function App() {
       )}
       {selectedNoteId !== null && !isNoteFormOpen && (() => {
         const selectedNote = notes.find((note) => note.id === selectedNoteId);
-        return selectedNote ? <NoteDetailsModal note={selectedNote} goals={goals} onClose={() => setSelectedNoteId(null)} onEdit={() => { setEditingNoteId(selectedNote.id); setSelectedNoteId(null); setIsNoteFormOpen(true); }} onDelete={deleteNote} /> : null;
+        return selectedNote ? <NoteDetailsModal note={selectedNote} goals={goals} initialDeleteConfirmation={isNoteDeleteConfirmationOpen} onClose={() => { setSelectedNoteId(null); setIsNoteDeleteConfirmationOpen(false); }} onEdit={() => { setEditingNoteId(selectedNote.id); setSelectedNoteId(null); setIsNoteDeleteConfirmationOpen(false); setIsNoteFormOpen(true); }} onDelete={deleteNote} /> : null;
       })()}
     </main>
   );
