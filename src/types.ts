@@ -30,3 +30,18 @@ export type TaskInput = {
   goalId?: number;
   plannedDate: string;
 };
+
+export type Note = {
+  id: number;
+  title: string;
+  content: string;
+  goalId?: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NoteInput = {
+  title: string;
+  content: string;
+  goalId?: number;
+};

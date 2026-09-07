@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import BottomNavigation, { type Section } from './components/BottomNavigation';
 import GoalDetailsModal from './components/GoalDetailsModal';
 import GoalFormModal from './components/GoalFormModal';
+import NoteDetailsModal from './components/NoteDetailsModal';
+import NoteFormModal from './components/NoteFormModal';
 import TaskFormModal from './components/TaskFormModal';
 import GoalsScreen from './screens/GoalsScreen';
 import NotesScreen from './screens/NotesScreen';
@@ -9,16 +11,18 @@ import SummaryScreen from './screens/SummaryScreen';
 import TodayScreen from './screens/TodayScreen';
 import { loadGoals, saveGoals } from './storage/goalsStorage';
 import { loadTasks, moveOverdueTasks, saveTasks } from './storage/tasksStorage';
-import type { CreateGoalInput, Goal, Task, TaskInput } from './types';
+import { loadNotes, saveNotes } from './storage/notesStorage';
+import type { CreateGoalInput, Goal, Note, NoteInput, Task, TaskInput } from './types';
 import { getLocalDateKey } from './utils/date';
 
 function App() {
   const [initialData] = useState(() => {
     const initialGoals = loadGoals();
-    return { goals: initialGoals, tasks: loadTasks(initialGoals) };
+    return { goals: initialGoals, tasks: loadTasks(initialGoals), notes: loadNotes() };
   });
   const [goals, setGoals] = useState<Goal[]>(initialData.goals);
   const [tasks, setTasks] = useState<Task[]>(initialData.tasks);
+  const [notes, setNotes] = useState<Note[]>(initialData.notes);
   const [currentDate, setCurrentDate] = useState(() => getLocalDateKey());
   const [activeSection, setActiveSection] = useState<Section>('goals');
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
@@ -26,6 +30,9 @@ function App() {
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
+  const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
 
   useEffect(() => {
     const refreshDateAndTasks = () => {
@@ -163,6 +170,42 @@ function App() {
     });
   };
 
+  const createNote = (input: NoteInput) => {
+    setNotes((currentNotes) => {
+      const nextId = currentNotes.length === 0 ? 1 : Math.max(...currentNotes.map((note) => note.id)) + 1;
+      const now = new Date().toISOString();
+      const newNote: Note = { id: nextId, title: input.title, content: input.content, createdAt: now, updatedAt: now, ...(input.goalId === undefined ? {} : { goalId: input.goalId }) };
+      const updatedNotes = [...currentNotes, newNote];
+      saveNotes(updatedNotes);
+      return updatedNotes;
+    });
+    setIsNoteFormOpen(false);
+    setEditingNoteId(null);
+  };
+
+  const updateNote = (input: NoteInput) => {
+    if (editingNoteId === null) return;
+    setNotes((currentNotes) => {
+      const updatedNotes = currentNotes.map((note) => note.id === editingNoteId
+        ? { ...note, title: input.title, content: input.content, updatedAt: new Date().toISOString(), ...(input.goalId === undefined ? { goalId: undefined } : { goalId: input.goalId }) }
+        : note);
+      saveNotes(updatedNotes);
+      return updatedNotes;
+    });
+    setIsNoteFormOpen(false);
+    setEditingNoteId(null);
+  };
+
+  const deleteNote = () => {
+    if (selectedNoteId === null) return;
+    setNotes((currentNotes) => {
+      const updatedNotes = currentNotes.filter((note) => note.id !== selectedNoteId);
+      saveNotes(updatedNotes);
+      return updatedNotes;
+    });
+    setSelectedNoteId(null);
+  };
+
   const deleteGoal = () => {
     if (selectedGoalId === null) {
       return;
@@ -192,7 +235,7 @@ function App() {
           />
         );
       case 'notes':
-        return <NotesScreen />;
+        return <NotesScreen goals={goals} notes={notes} onAddNote={() => { setEditingNoteId(null); setIsNoteFormOpen(true); }} onOpenNote={setSelectedNoteId} onEditNote={(noteId) => { setEditingNoteId(noteId); setIsNoteFormOpen(true); }} onDeleteNote={setSelectedNoteId} />;
       case 'summary':
         return <SummaryScreen goals={goals} currentDate={currentDate} />;
       case 'goals':
@@ -217,8 +260,16 @@ function App() {
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         onAdd={() => {
-          setEditingGoalId(null);
-          setIsGoalFormOpen(true);
+          if (activeSection === 'today') {
+            setEditingTaskId(null);
+            setIsTaskFormOpen(true);
+          } else if (activeSection === 'notes') {
+            setEditingNoteId(null);
+            setIsNoteFormOpen(true);
+          } else {
+            setEditingGoalId(null);
+            setIsGoalFormOpen(true);
+          }
         }}
       />
       {isGoalFormOpen && (editingGoalId === null || editingGoal) && (
@@ -253,6 +304,18 @@ function App() {
           onSubmit={editingTaskId === null ? createTask : updateTask}
         />
       )}
+      {isNoteFormOpen && (editingNoteId === null || notes.some((note) => note.id === editingNoteId)) && (
+        <NoteFormModal
+          note={editingNoteId === null ? undefined : notes.find((note) => note.id === editingNoteId)}
+          goals={goals}
+          onClose={() => { setIsNoteFormOpen(false); setEditingNoteId(null); }}
+          onSubmit={editingNoteId === null ? createNote : updateNote}
+        />
+      )}
+      {selectedNoteId !== null && !isNoteFormOpen && (() => {
+        const selectedNote = notes.find((note) => note.id === selectedNoteId);
+        return selectedNote ? <NoteDetailsModal note={selectedNote} goals={goals} onClose={() => setSelectedNoteId(null)} onEdit={() => { setEditingNoteId(selectedNote.id); setSelectedNoteId(null); setIsNoteFormOpen(true); }} onDelete={deleteNote} /> : null;
+      })()}
     </main>
   );
 }
