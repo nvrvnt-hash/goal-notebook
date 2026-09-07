@@ -19,9 +19,10 @@ type GoalsScreenProps = {
   goals: Goal[];
   onAddProgress: (goalId: number, amount: number) => void;
   onOpenSummary: () => void;
+  onOpenGoal: (goalId: number) => void;
 };
 
-function GoalsScreen({ goals, onAddProgress, onOpenSummary }: GoalsScreenProps) {
+function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal }: GoalsScreenProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const enrichedGoals = useMemo(
     () => goals.map((goal) => ({ ...goal, status: getGoalStatus(goal), daysLeft: getDaysLeft(goal.deadline) })),
@@ -69,7 +70,9 @@ function GoalsScreen({ goals, onAddProgress, onOpenSummary }: GoalsScreenProps) 
         ))}
       </nav>
       <section className="goal-list" aria-label="Активные цели">
-        {visibleGoals.map((goal) => <GoalCard key={goal.id} goal={goal} onAddProgress={onAddProgress} />)}
+        {visibleGoals.map((goal) => (
+          <GoalCard key={goal.id} goal={goal} onAddProgress={onAddProgress} onOpenGoal={onOpenGoal} />
+        ))}
       </section>
     </section>
   );
@@ -79,13 +82,28 @@ function MetricCard({ value, label, tone }: { value: number | string; label: str
   return <article className={`metric-card ${tone}`}><strong>{value}</strong><span>{label}</span></article>;
 }
 
-function GoalCard({ goal, onAddProgress }: { goal: Goal & { status: GoalStatus; daysLeft?: number }; onAddProgress: (goalId: number, amount: number) => void }) {
+function GoalCard({
+  goal,
+  onAddProgress,
+  onOpenGoal,
+}: {
+  goal: Goal & { status: GoalStatus; daysLeft?: number };
+  onAddProgress: (goalId: number, amount: number) => void;
+  onOpenGoal: (goalId: number) => void;
+}) {
   const statusInfo = getStatusInfo(goal.status);
   return (
     <article className="goal-card">
       <div className="goal-card-top">
         <div className="goal-title-block"><span className="stage-label">{goal.stage}</span><h2>{goal.title}</h2></div>
-        <button className="details-button" type="button" aria-label={`Открыть цель: ${goal.title}`}><ChevronRight size={20} strokeWidth={2.5} /></button>
+        <button
+          className="details-button"
+          type="button"
+          aria-label={`Открыть цель: ${goal.title}`}
+          onClick={() => onOpenGoal(goal.id)}
+        >
+          <ChevronRight size={20} strokeWidth={2.5} />
+        </button>
       </div>
       <div className="progress-head"><span>Прогресс</span><strong>{goal.progress}%</strong></div>
       <div className="progress-track" aria-hidden="true"><span style={{ width: `${goal.progress}%` }} /></div>

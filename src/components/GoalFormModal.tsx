@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { CreateGoalInput } from '../types';
+import type { CreateGoalInput, Goal } from '../types';
 
 type GoalFormModalProps = {
+  goal?: Goal;
   onClose: () => void;
-  onCreate: (input: CreateGoalInput) => void;
+  onSubmit: (input: CreateGoalInput) => void;
 };
 
 type FormErrors = Partial<Record<keyof CreateGoalInput, string>>;
@@ -23,15 +24,26 @@ function getTodayDate() {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function GoalFormModal({ onClose, onCreate }: GoalFormModalProps) {
+function GoalFormModal({ goal, onClose, onSubmit }: GoalFormModalProps) {
   const [values, setValues] = useState<FormValues>({
-    title: '',
-    stage: '',
-    startDate: getTodayDate(),
-    deadline: '',
-    todayTask: '',
+    title: goal?.title ?? '',
+    stage: goal?.stage ?? '',
+    startDate: goal?.startDate ?? getTodayDate(),
+    deadline: goal?.deadline ?? '',
+    todayTask: goal?.todayTask ?? '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
+
+  useEffect(() => {
+    setValues({
+      title: goal?.title ?? '',
+      stage: goal?.stage ?? '',
+      startDate: goal?.startDate ?? getTodayDate(),
+      deadline: goal?.deadline ?? '',
+      todayTask: goal?.todayTask ?? '',
+    });
+    setErrors({});
+  }, [goal]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -79,7 +91,7 @@ function GoalFormModal({ onClose, onCreate }: GoalFormModalProps) {
       return;
     }
 
-    onCreate({
+    onSubmit({
       title,
       stage,
       startDate,
@@ -98,9 +110,9 @@ function GoalFormModal({ onClose, onCreate }: GoalFormModalProps) {
         }
       }}
     >
-      <section className="goal-form-modal" role="dialog" aria-modal="true" aria-labelledby="new-goal-title">
+      <section className="goal-form-modal" role="dialog" aria-modal="true" aria-labelledby="goal-form-title">
         <div className="modal-heading">
-          <h2 id="new-goal-title">Новая цель</h2>
+          <h2 id="goal-form-title">{goal ? 'Редактировать цель' : 'Новая цель'}</h2>
           <button className="modal-close-button" type="button" aria-label="Закрыть форму" onClick={onClose}>
             ×
           </button>
@@ -174,7 +186,7 @@ function GoalFormModal({ onClose, onCreate }: GoalFormModalProps) {
 
           <div className="modal-actions">
             <button className="secondary-button" type="button" onClick={onClose}>Отмена</button>
-            <button className="primary-button" type="submit">Создать цель</button>
+            <button className="primary-button" type="submit">{goal ? 'Сохранить' : 'Создать цель'}</button>
           </div>
         </form>
       </section>
