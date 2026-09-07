@@ -13,5 +13,20 @@ export type CreateGoalInput = {
   stage: string;
   startDate: string;
   deadline?: string;
-  todayTask?: string;
+};
+
+export type Task = {
+  id: number;
+  title: string;
+  goalId?: number;
+  plannedDate: string;
+  completed: boolean;
+  createdAt: string;
+  completedAt?: string;
+};
+
+export type TaskInput = {
+  title: string;
+  goalId?: number;
+  plannedDate: string;
 };

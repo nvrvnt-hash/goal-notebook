@@ -2,19 +2,24 @@ import { useState } from 'react';
 import BottomNavigation, { type Section } from './components/BottomNavigation';
 import GoalDetailsModal from './components/GoalDetailsModal';
 import GoalFormModal from './components/GoalFormModal';
+import TaskFormModal from './components/TaskFormModal';
 import GoalsScreen from './screens/GoalsScreen';
 import NotesScreen from './screens/NotesScreen';
 import SummaryScreen from './screens/SummaryScreen';
 import TodayScreen from './screens/TodayScreen';
 import { loadGoals, saveGoals } from './storage/goalsStorage';
-import type { CreateGoalInput, Goal } from './types';
+import { loadTasks, saveTasks } from './storage/tasksStorage';
+import type { CreateGoalInput, Goal, Task, TaskInput } from './types';
 
 function App() {
   const [goals, setGoals] = useState<Goal[]>(() => loadGoals());
+  const [tasks, setTasks] = useState<Task[]>(() => loadTasks(loadGoals()));
   const [activeSection, setActiveSection] = useState<Section>('goals');
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState<number | null>(null);
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
 
   const addProgress = (goalId: number, amount: number) => {
     setGoals((currentGoals) => {
@@ -38,7 +43,6 @@ function App() {
       progress: 0,
       startDate: input.startDate,
       ...(input.deadline ? { deadline: input.deadline } : {}),
-      ...(input.todayTask ? { todayTask: input.todayTask } : {}),
     };
     const updatedGoals = [...goals, newGoal];
     setGoals(updatedGoals);
@@ -61,7 +65,6 @@ function App() {
             stage: input.stage,
             startDate: input.startDate,
             ...(input.deadline ? { deadline: input.deadline } : { deadline: undefined }),
-            ...(input.todayTask ? { todayTask: input.todayTask } : { todayTask: undefined }),
           }
         : goal,
     );
@@ -71,6 +74,53 @@ function App() {
     setEditingGoalId(null);
     setSelectedGoalId(null);
     setActiveSection('goals');
+  };
+
+  const createTask = (input: TaskInput) => {
+    const nextId = tasks.length === 0 ? 1 : Math.max(...tasks.map((task) => task.id)) + 1;
+    const newTask: Task = {
+      id: nextId,
+      title: input.title,
+      plannedDate: input.plannedDate,
+      completed: false,
+      createdAt: new Date().toISOString(),
+      ...(input.goalId === undefined ? {} : { goalId: input.goalId }),
+    };
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    saveTasks(updatedTasks);
+    setIsTaskFormOpen(false);
+    setEditingTaskId(null);
+  };
+
+  const updateTask = (input: TaskInput) => {
+    if (editingTaskId === null) return;
+    const updatedTasks = tasks.map((task) => task.id === editingTaskId
+      ? { ...task, title: input.title, plannedDate: input.plannedDate, ...(input.goalId === undefined ? { goalId: undefined } : { goalId: input.goalId }) }
+      : task);
+    setTasks(updatedTasks);
+    saveTasks(updatedTasks);
+    setIsTaskFormOpen(false);
+    setEditingTaskId(null);
+  };
+
+  const toggleTask = (taskId: number) => {
+    const updatedTasks = tasks.map((task) => {
+      if (task.id !== taskId) return task;
+      if (task.completed) {
+        const { completedAt: _completedAt, ...taskWithoutCompletionDate } = task;
+        return { ...taskWithoutCompletionDate, completed: false };
+      }
+      return { ...task, completed: true, completedAt: new Date().toISOString() };
+    });
+    setTasks(updatedTasks);
+    saveTasks(updatedTasks);
+  };
+
+  const deleteTask = (taskId: number) => {
+    const updatedTasks = tasks.filter((task) => task.id !== taskId);
+    setTasks(updatedTasks);
+    saveTasks(updatedTasks);
   };
 
   const deleteGoal = () => {
@@ -90,7 +140,16 @@ function App() {
   const renderActiveScreen = () => {
     switch (activeSection) {
       case 'today':
-        return <TodayScreen goals={goals} />;
+        return (
+          <TodayScreen
+            goals={goals}
+            tasks={tasks}
+            onAddTask={() => { setEditingTaskId(null); setIsTaskFormOpen(true); }}
+            onEditTask={(taskId) => { setEditingTaskId(taskId); setIsTaskFormOpen(true); }}
+            onToggleTask={toggleTask}
+            onDeleteTask={deleteTask}
+          />
+        );
       case 'notes':
         return <NotesScreen />;
       case 'summary':
@@ -103,6 +162,7 @@ function App() {
             onAddProgress={addProgress}
             onOpenSummary={() => setActiveSection('summary')}
             onOpenGoal={setSelectedGoalId}
+            tasks={tasks}
           />
         );
     }
@@ -139,6 +199,15 @@ function App() {
             setIsGoalFormOpen(true);
           }}
           onDelete={deleteGoal}
+          tasks={tasks}
+        />
+      )}
+      {isTaskFormOpen && (editingTaskId === null || tasks.some((task) => task.id === editingTaskId)) && (
+        <TaskFormModal
+          task={editingTaskId === null ? undefined : tasks.find((task) => task.id === editingTaskId)}
+          goals={goals}
+          onClose={() => { setIsTaskFormOpen(false); setEditingTaskId(null); }}
+          onSubmit={editingTaskId === null ? createTask : updateTask}
         />
       )}
     </main>

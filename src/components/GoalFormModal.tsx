@@ -14,7 +14,6 @@ type FormValues = {
   stage: string;
   startDate: string;
   deadline: string;
-  todayTask: string;
 };
 
 function getTodayDate() {
@@ -30,7 +29,6 @@ function GoalFormModal({ goal, onClose, onSubmit }: GoalFormModalProps) {
     stage: goal?.stage ?? '',
     startDate: goal?.startDate ?? getTodayDate(),
     deadline: goal?.deadline ?? '',
-    todayTask: goal?.todayTask ?? '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -40,7 +38,6 @@ function GoalFormModal({ goal, onClose, onSubmit }: GoalFormModalProps) {
       stage: goal?.stage ?? '',
       startDate: goal?.startDate ?? getTodayDate(),
       deadline: goal?.deadline ?? '',
-      todayTask: goal?.todayTask ?? '',
     });
     setErrors({});
   }, [goal]);
@@ -67,7 +64,6 @@ function GoalFormModal({ goal, onClose, onSubmit }: GoalFormModalProps) {
     const stage = values.stage.trim();
     const startDate = values.startDate.trim();
     const deadline = values.deadline.trim();
-    const todayTask = values.todayTask.trim();
     const nextErrors: FormErrors = {};
 
     if (!title) {
@@ -96,7 +92,6 @@ function GoalFormModal({ goal, onClose, onSubmit }: GoalFormModalProps) {
       stage,
       startDate,
       ...(deadline ? { deadline } : {}),
-      ...(todayTask ? { todayTask } : {}),
     });
   };
 
@@ -172,16 +167,6 @@ function GoalFormModal({ goal, onClose, onSubmit }: GoalFormModalProps) {
               aria-describedby={errors.deadline ? 'goal-deadline-error' : undefined}
             />
             {errors.deadline && <span className="field-error" id="goal-deadline-error">{errors.deadline}</span>}
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="goal-today-task">Задача на сегодня</label>
-            <input
-              id="goal-today-task"
-              type="text"
-              value={values.todayTask}
-              onChange={(event) => updateValue('todayTask', event.target.value)}
-            />
           </div>
 
           <div className="modal-actions">

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, CalendarDays, ChevronRight, ListTodo } from 'lucide-react';
-import type { Goal } from '../types';
+import type { Goal, Task } from '../types';
+import { getLocalDateKey } from '../utils/date';
 
 export type GoalStatus = 'on-track' | 'behind' | 'no-date';
 type FilterKey = 'all' | 'behind' | 'soon' | 'no-date';
@@ -20,9 +21,10 @@ type GoalsScreenProps = {
   onAddProgress: (goalId: number, amount: number) => void;
   onOpenSummary: () => void;
   onOpenGoal: (goalId: number) => void;
+  tasks: Task[];
 };
 
-function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal }: GoalsScreenProps) {
+function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal, tasks }: GoalsScreenProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const enrichedGoals = useMemo(
     () => goals.map((goal) => ({ ...goal, status: getGoalStatus(goal), daysLeft: getDaysLeft(goal.deadline) })),
@@ -71,7 +73,7 @@ function GoalsScreen({ goals, onAddProgress, onOpenSummary, onOpenGoal }: GoalsS
       </nav>
       <section className="goal-list" aria-label="Активные цели">
         {visibleGoals.map((goal) => (
-          <GoalCard key={goal.id} goal={goal} onAddProgress={onAddProgress} onOpenGoal={onOpenGoal} />
+          <GoalCard key={goal.id} goal={goal} tasks={tasks} onAddProgress={onAddProgress} onOpenGoal={onOpenGoal} />
         ))}
       </section>
     </section>
@@ -86,12 +88,20 @@ function GoalCard({
   goal,
   onAddProgress,
   onOpenGoal,
+  tasks,
 }: {
   goal: Goal & { status: GoalStatus; daysLeft?: number };
+  tasks: Task[];
   onAddProgress: (goalId: number, amount: number) => void;
   onOpenGoal: (goalId: number) => void;
 }) {
   const statusInfo = getStatusInfo(goal.status);
+  const todayTasks = tasks.filter((task) => task.goalId === goal.id && !task.completed && task.plannedDate === getLocalDateKey());
+  const taskLabel = todayTasks.length === 0
+    ? 'Задачи на сегодня не выбраны'
+    : todayTasks.length === 1
+      ? todayTasks[0].title
+      : `${todayTasks[0].title} · ещё ${todayTasks.length - 1}`;
   return (
     <article className="goal-card">
       <div className="goal-card-top">
@@ -111,7 +121,7 @@ function GoalCard({
         <span className="meta-item"><CalendarDays size={16} />{formatDeadline(goal.deadline)}</span>
         <span className={`status-pill ${statusInfo.className}`}>{statusInfo.label}</span>
       </div>
-      <div className="task-link"><ListTodo size={17} /><span>{goal.todayTask ?? 'Задача на сегодня не выбрана'}</span></div>
+      <div className="task-link"><ListTodo size={17} /><span>{taskLabel}</span></div>
       <div className="quick-actions" aria-label={`Быстро изменить прогресс цели ${goal.title}`}>
         {[5, 10, 25].map((amount) => <button key={amount} type="button" onClick={() => onAddProgress(goal.id, amount)} disabled={goal.progress >= 100}>+{amount}%</button>)}
       </div>

@@ -2,18 +2,22 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, ListTodo } from 'lucide-react';
 import { getGoalStatus, type GoalStatus } from '../screens/GoalsScreen';
 import type { Goal } from '../types';
+import type { Task } from '../types';
+import { getLocalDateKey } from '../utils/date';
 
 type GoalDetailsModalProps = {
   goal: Goal;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  tasks: Task[];
 };
 
-function GoalDetailsModal({ goal, onClose, onEdit, onDelete }: GoalDetailsModalProps) {
+function GoalDetailsModal({ goal, onClose, onEdit, onDelete, tasks }: GoalDetailsModalProps) {
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
   const status = getGoalStatus(goal);
   const statusInfo = getStatusInfo(status);
+  const relatedTasks = tasks.filter((task) => task.goalId === goal.id && task.plannedDate === getLocalDateKey());
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -65,7 +69,12 @@ function GoalDetailsModal({ goal, onClose, onEdit, onDelete }: GoalDetailsModalP
             </div>
             <div className="details-meta-item">
               <ListTodo size={17} />
-              <span><strong>Задача на сегодня</strong>{goal.todayTask || 'Не запланирована'}</span>
+              <span>
+                <strong>Задачи на сегодня</strong>
+                {relatedTasks.length === 0
+                  ? 'Не запланирована'
+                  : relatedTasks.map((task) => task.title).join(' · ')}
+              </span>
             </div>
           </div>
 
