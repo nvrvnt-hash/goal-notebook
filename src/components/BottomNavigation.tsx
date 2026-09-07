@@ -5,6 +5,7 @@ export type Section = 'goals' | 'today' | 'notes' | 'summary';
 type BottomNavigationProps = {
   activeSection: Section;
   onSectionChange: (section: Section) => void;
+  onAdd: () => void;
 };
 
 const navigationItems: Array<{ section: Section; label: string }> = [
@@ -21,7 +22,7 @@ const navigationIcons = {
   summary: FileText,
 };
 
-function BottomNavigation({ activeSection, onSectionChange }: BottomNavigationProps) {
+function BottomNavigation({ activeSection, onSectionChange, onAdd }: BottomNavigationProps) {
   return (
     <nav className="bottom-nav" aria-label="Основная навигация">
       {navigationItems.slice(0, 2).map((item) => {
@@ -41,7 +42,7 @@ function BottomNavigation({ activeSection, onSectionChange }: BottomNavigationPr
           </button>
         );
       })}
-      <button className="add-button" type="button" aria-label="Добавить" aria-disabled="true">
+      <button className="add-button" type="button" aria-label="Добавить" onClick={onAdd}>
         <CirclePlus size={34} strokeWidth={1.9} />
       </button>
       {navigationItems.slice(2).map((item) => {

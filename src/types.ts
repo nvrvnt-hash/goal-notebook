@@ -7,3 +7,11 @@ export type Goal = {
   deadline?: string;
   todayTask?: string;
 };
+
+export type CreateGoalInput = {
+  title: string;
+  stage: string;
+  startDate: string;
+  deadline?: string;
+  todayTask?: string;
+};
