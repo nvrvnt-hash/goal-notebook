@@ -1,7 +1,11 @@
-node_modules
-dist
-work
-.npm-cache
-.env.local
-.env.*.local
+node_modules/
+dist/
+npm-cache/
+work/
+
+.env
+.env.*
+!.env.example
+
 *.tsbuildinfo
+*.log
